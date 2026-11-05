@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Structured Output - Bài tập</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 16px; }
+    nav button { padding: 8px 14px; margin-right: 6px; cursor: pointer; }
+    nav button.active { background: #1565c0; color: #fff; border: 1px solid #1565c0; }
+    section.card { border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+    label { display: block; margin: 8px 0 2px; font-weight: 600; }
+    input, select, textarea { width: 100%; padding: 6px; box-sizing: border-box; font: inherit; }
+    button { padding: 8px 14px; margin: 8px 8px 0 0; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .error { background: #fdecea; padding: 8px 12px; border-radius: 6px; margin-top: 8px; white-space: pre-line; }
+    .ok { background: #e8f5e9; padding: 8px 12px; border-radius: 6px; margin-top: 8px; white-space: pre-line; }
+    .hidden { display: none; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Structured Output</h1>
+  <nav>
+    <button data-tab="tab1" class="active">Bài 1: Ticket</button>
+    <button data-tab="tab2">Bài 2: Ca kho</button>
+    <button data-tab="tab3">Bài 3: Hóa đơn</button>
+  </nav>
+
+  <!-- ================= BÀI 1 ================= -->
+  <div id="tab1" class="tab">
+    <section class="card">
+      <h2>1. Thêm ticket</h2>
+      <label>Nhận lúc (ISO 8601, có múi giờ)</label><input id="t_receivedAt">
+      <label>Tin nhắn của khách</label><textarea id="t_message" rows="3"></textarea>
+      <button id="t_create">Thêm ticket</button>
+      <div id="t_createMsg"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. AI đọc tin nhắn</h2>
+      <label>Mã ticket</label><input id="t_id" type="number">
+      <button id="t_extract">Extract</button>
+      <div id="t_extractMsg"></div>
+      <div id="t_edit" class="hidden">
+        <label>Tin nhắn gốc</label><div id="t_raw"></div>
+        <label>Hạn xử lý tính được</label><div id="t_deadline"></div>
+        <div class="row">
+          <div><label>intent</label>
+            <select id="t_intent"><option>billing</option><option>technical</option><option>account</option><option>other</option></select></div>
+          <div><label>severity</label>
+            <select id="t_severity"><option>low</option><option>medium</option><option>high</option><option>critical</option></select></div>
+        </div>
+        <label>product</label><input id="t_product">
+        <label>summary</label><textarea id="t_summary" rows="2" maxlength="200"></textarea>
+        <label><input type="checkbox" id="t_review" style="width:auto"> needs_human_review</label>
+        <button id="t_confirm">Xác nhận</button>
+        <div id="t_confirmMsg"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. Hàng đợi</h2>
+      <label>Xem top</label><input id="t_limit" type="number" value="10" min="1" max="100" style="width:100px">
+      <button id="t_refresh">Làm mới</button>
+      <button id="t_next">Lấy ticket tiếp theo</button>
+      <div id="t_queueMsg"></div>
+      <table>
+        <thead><tr><th>#</th><th>Ticket</th><th>Mức khẩn cấp</th><th>Hạn xử lý</th><th>Tóm tắt</th><th>Lý do</th></tr></thead>
+        <tbody id="t_queueBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- ================= BÀI 2 ================= -->
+  <div id="tab2" class="tab hidden">
+    <section class="card">
+      <h2>1. Thiết lập ca kho và lịch đã có</h2>
+      <div class="row">
+        <div><label>Mã ca</label><input id="d_code" placeholder="A"></div>
+        <div><label>Loại ca</label><select id="d_type"><option>standard</option><option>refrigerated</option></select></div>
+      </div>
+      <button id="d_addDock">Thêm ca</button>
+      <div class="row">
+        <div><label>Bắt đầu</label><input id="b_start" placeholder="2026-10-21T09:00:00+07:00"></div>
+        <div><label>Kết thúc</label><input id="b_end" placeholder="2026-10-21T10:00:00+07:00"></div>
+      </div>
+      <label>Ca</label><input id="b_dock" placeholder="A">
+      <button id="b_add">Thêm lịch đã có</button>
+      <div id="d_setupMsg"></div>
+      <button id="d_refresh">Xem lịch từng ca</button>
+      <table>
+        <thead><tr><th>Ca</th><th>Loại</th><th>Lịch đã đặt</th></tr></thead>
+        <tbody id="d_scheduleBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>2. Email của nhà vận chuyển</h2>
+      <label>Nội dung email</label><textarea id="r_email" rows="3"></textarea>
+      <button id="r_create">Thêm yêu cầu</button>
+      <div id="r_createMsg"></div>
+    </section>
+
+    <section class="card">
+      <h2>3. AI đọc email, gợi ý ca</h2>
+      <label>Mã yêu cầu</label><input id="r_id" type="number">
+      <button id="r_extract">Extract</button>
+      <div id="r_extractMsg"></div>
+      <div id="r_edit" class="hidden">
+        <label>Nhà vận chuyển</label><div id="r_carrier"></div>
+        <label>Giờ sớm nhất xe có thể đến (có múi giờ)</label><input id="r_earliest">
+        <div class="row">
+          <div><label>Thời lượng (phút)</label><input id="r_duration" type="number" min="1"></div>
+          <div><label>Loại ca</label><select id="r_dockType"><option>standard</option><option>refrigerated</option></select></div>
+        </div>
+        <button id="r_suggest">Gợi ý ca</button>
+        <button id="r_confirm" class="hidden">Xác nhận đặt ca</button>
+        <div id="r_suggestMsg"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= BÀI 3 ================= -->
+  <div id="tab3" class="tab hidden">
+    <section class="card">
+      <h2>1. Thêm chứng từ</h2>
+      <label>Văn bản chứng từ (sau OCR)</label><textarea id="e_text" rows="3"></textarea>
+      <button id="e_create">Thêm chứng từ</button>
+      <div id="e_createMsg"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. AI đọc chứng từ, kiểm tra trùng</h2>
+      <label>Mã chứng từ</label><input id="e_id" type="number">
+      <button id="e_extract">Extract</button>
+      <div id="e_extractMsg"></div>
+      <div id="e_edit" class="hidden">
+        <div class="row">
+          <div><label>Nơi bán</label><input id="e_vendor"></div>
+          <div><label>Số hóa đơn</label><input id="e_invoice"></div>
+          <div><label>Ngày giao dịch (YYYY-MM-DD)</label><input id="e_date"></div>
+          <div><label>Số tiền (đơn vị nhỏ nhất)</label><input id="e_amount" type="number"></div>
+          <div><label>Loại tiền</label><input id="e_currency"></div>
+          <div><label>Mã biên nhận</label><input id="e_receipt"></div>
+        </div>
+        <button id="e_check">Kiểm tra trùng</button>
+        <div id="e_checkMsg"></div>
+        <div id="e_reviewBox" class="hidden">
+          <button id="e_confirmDup">Xác nhận là trùng</button>
+          <button id="e_dismiss">Bỏ nghi vấn</button>
+          <div id="e_reviewMsg"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function show(box, cssClass, lines) {
+    box.className = cssClass;
+    box.textContent = lines.join("\n");
+  }
+
+  async function call(path, method, payload) {
+    const response = await fetch(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
+    const body = await response.json().catch(() => ({}));
+    return { ok: response.ok, body };
+  }
+
+  function errorLines(body) {
+    if (typeof body.detail === "string") return [body.detail];
+    if (Array.isArray(body.detail)) return body.detail.map((e) => e.loc.slice(1).join(".") + ": " + e.msg);
+    return ["Có lỗi xảy ra"];
+  }
+
+  // Server lưu và trả giờ theo UTC (không có chữ Z), trang web đổi sang giờ máy của bạn khi hiển thị
+  const showTime = (value) => (value ? new Date(value + "Z").toLocaleString("vi-VN") : "");
+
+  function isoWithOffset(date) {
+    const offset = -date.getTimezoneOffset();
+    const pad = (n) => String(Math.abs(n)).padStart(2, "0");
+    const local = new Date(date.getTime() + offset * 60000).toISOString().slice(0, 19);
+    return local + (offset >= 0 ? "+" : "-") + pad(Math.floor(Math.abs(offset) / 60)) + ":" + pad(offset % 60);
+  }
+
+  document.querySelectorAll("nav button").forEach((button) => {
+    button.onclick = () => {
+      document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b === button));
+      document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("hidden", tab.id !== button.dataset.tab));
+    };
+  });
+
+  // ================= BÀI 1 =================
+  $("t_receivedAt").value = isoWithOffset(new Date());
+
+  $("t_create").onclick = async () => {
+    const result = await call("/api/tickets", "POST", {
+      message: $("t_message").value,
+      received_at: $("t_receivedAt").value.trim() || null,
+    });
+    if (!result.ok) return show($("t_createMsg"), "error", errorLines(result.body));
+    $("t_id").value = result.body.id;
+    show($("t_createMsg"), "ok", ["Đã thêm ticket " + result.body.id]);
+  };
+
+  $("t_extract").onclick = async () => {
+    $("t_edit").classList.add("hidden");
+    const result = await call("/api/tickets/extract", "POST", { ticket_id: Number($("t_id").value) });
+    if (!result.ok) return show($("t_extractMsg"), "error", errorLines(result.body));
+
+    const ticket = result.body;
+    $("t_raw").textContent = ticket.raw_message;
+    $("t_deadline").textContent = showTime(ticket.deadline_at);
+    $("t_intent").value = ticket.intent;
+    $("t_severity").value = ticket.severity;
+    $("t_product").value = ticket.product || "";
+    $("t_summary").value = ticket.summary;
+    $("t_review").checked = ticket.needs_human_review;
+    $("t_edit").classList.remove("hidden");
+    $("t_confirmMsg").textContent = "";
+    show($("t_extractMsg"), "ok", ["AI đã đọc xong, kiểm tra và sửa nếu cần"]);
+  };
+
+  $("t_confirm").onclick = async () => {
+    const result = await call("/api/tickets/confirm", "POST", {
+      ticket_id: Number($("t_id").value),
+      intent: $("t_intent").value,
+      severity: $("t_severity").value,
+      product: $("t_product").value,
+      summary: $("t_summary").value,
+      needs_human_review: $("t_review").checked,
+    });
+    if (!result.ok) return show($("t_confirmMsg"), "error", errorLines(result.body));
+    show($("t_confirmMsg"), "ok", ["Đã vào hàng đợi, hạn xử lý " + showTime(result.body.deadline_at)]);
+    loadQueue();
+  };
+
+  async function loadQueue() {
+    const result = await call("/api/tickets/queue?limit=" + ($("t_limit").value || 10), "GET");
+    const body = $("t_queueBody");
+    body.textContent = "";
+    if (!result.ok) return show($("t_queueMsg"), "error", errorLines(result.body));
+    result.body.items.forEach((item) => {
+      const t = item.ticket;
+      const tr = document.createElement("tr");
+      [item.position, t.id, t.severity, showTime(t.deadline_at), t.summary, item.reason].forEach((value) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    show($("t_queueMsg"), "", ["Tổng số ticket trong hàng đợi: " + result.body.size]);
+  }
+  $("t_refresh").onclick = loadQueue;
+
+  $("t_next").onclick = async () => {
+    const result = await call("/api/tickets/next", "POST");
+    await loadQueue();
+    if (!result.ok) return show($("t_queueMsg"), "error", errorLines(result.body));
+    show($("t_queueMsg"), "ok", ["Ticket cần xử lý tiếp theo: " + result.body.id + " - " + result.body.summary]);
+  };
+  loadQueue();
+
+  // ================= BÀI 2 =================
+  let suggestedSlot = null;
+
+  $("d_addDock").onclick = async () => {
+    const result = await call("/api/docks", "POST", { code: $("d_code").value.trim(), dock_type: $("d_type").value });
+    if (!result.ok) return show($("d_setupMsg"), "error", errorLines(result.body));
+    show($("d_setupMsg"), "ok", ["Đã thêm ca " + result.body.code]);
+    loadDocks();
+  };
+
+  $("b_add").onclick = async () => {
+    const result = await call("/api/bookings", "POST", {
+      dock_code: $("b_dock").value.trim(), start_at: $("b_start").value.trim(), end_at: $("b_end").value.trim(),
+    });
+    if (!result.ok) return show($("d_setupMsg"), "error", errorLines(result.body));
+    show($("d_setupMsg"), "ok", ["Đã thêm lịch cho ca " + result.body.dock_code]);
+    loadDocks();
+  };
+
+  async function loadDocks() {
+    const result = await call("/api/docks", "GET");
+    const body = $("d_scheduleBody");
+    body.textContent = "";
+    if (!result.ok) return;
+    result.body.forEach((dock) => {
+      const tr = document.createElement("tr");
+      const times = dock.bookings.map((b) => showTime(b.start_at) + " - " + showTime(b.end_at)).join("\n");
+      [dock.code, dock.dock_type, times].forEach((value) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        td.style.whiteSpace = "pre-line";
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+  $("d_refresh").onclick = loadDocks;
+  loadDocks();
+
+  $("r_create").onclick = async () => {
+    const result = await call("/api/requests", "POST", { email_text: $("r_email").value });
+    if (!result.ok) return show($("r_createMsg"), "error", errorLines(result.body));
+    $("r_id").value = result.body.id;
+    show($("r_createMsg"), "ok", ["Đã thêm yêu cầu " + result.body.id]);
+  };
+
+  $("r_extract").onclick = async () => {
+    $("r_edit").classList.add("hidden");
+    suggestedSlot = null;
+    const result = await call("/api/requests/extract", "POST", { request_id: Number($("r_id").value) });
+    if (!result.ok) return show($("r_extractMsg"), "error", errorLines(result.body));
+
+    const request = result.body.request;
+    $("r_carrier").textContent = request.carrier || "";
+    $("r_earliest").value = request.earliest_start ? isoWithOffset(new Date(request.earliest_start + "Z")) : "";
+    $("r_duration").value = request.duration_minutes || "";
+    $("r_dockType").value = request.dock_type;
+    $("r_confirm").classList.add("hidden");
+    $("r_suggestMsg").textContent = "";
+    $("r_edit").classList.remove("hidden");
+    if (result.body.errors.length) show($("r_extractMsg"), "error", result.body.errors);
+    else show($("r_extractMsg"), "ok", ["AI đã đọc xong, kiểm tra và sửa nếu cần"]);
+  };
+
+  $("r_suggest").onclick = async () => {
+    $("r_confirm").classList.add("hidden");
+    const result = await call("/api/slots/suggest", "POST", {
+      request_id: Number($("r_id").value),
+      earliest_start: $("r_earliest").value.trim(),
+      duration_minutes: Number($("r_duration").value),
+      dock_type: $("r_dockType").value,
+    });
+    if (!result.ok) return show($("r_suggestMsg"), "error", errorLines(result.body));
+    if (result.body.status === "no_slot") return show($("r_suggestMsg"), "error", ["Hết chỗ trong ngày (no_slot)"]);
+    suggestedSlot = result.body;
+    show($("r_suggestMsg"), "ok", ["Ca " + suggestedSlot.dock_code + ": " + showTime(suggestedSlot.start_at) + " - " + showTime(suggestedSlot.end_at)]);
+    $("r_confirm").classList.remove("hidden");
+  };
+
+  $("r_confirm").onclick = async () => {
+    const result = await call("/api/bookings/confirm", "POST", {
+      request_id: Number($("r_id").value),
+      dock_code: suggestedSlot.dock_code,
+      start_at: suggestedSlot.start_at + "Z",
+    });
+    if (!result.ok) return show($("r_suggestMsg"), "error", errorLines(result.body));
+    show($("r_suggestMsg"), "ok", ["Đã đặt ca " + result.body.dock_code + " lúc " + showTime(result.body.start_at)]);
+    $("r_confirm").classList.add("hidden");
+    loadDocks();
+  };
+
+  // ================= BÀI 3 =================
+  $("e_create").onclick = async () => {
+    const result = await call("/api/expenses", "POST", { raw_text: $("e_text").value });
+    if (!result.ok) return show($("e_createMsg"), "error", errorLines(result.body));
+    $("e_id").value = result.body.id;
+    show($("e_createMsg"), "ok", ["Đã thêm chứng từ " + result.body.id]);
+  };
+
+  $("e_extract").onclick = async () => {
+    $("e_edit").classList.add("hidden");
+    const result = await call("/api/expenses/extract", "POST", { expense_id: Number($("e_id").value) });
+    if (!result.ok) return show($("e_extractMsg"), "error", errorLines(result.body));
+
+    const expense = result.body.expense;
+    $("e_vendor").value = expense.vendor || "";
+    $("e_invoice").value = expense.invoice_number || "";
+    $("e_date").value = expense.transaction_date || "";
+    $("e_amount").value = expense.amount_minor ?? "";
+    $("e_currency").value = expense.currency || "";
+    $("e_receipt").value = expense.receipt_id || "";
+    $("e_checkMsg").textContent = "";
+    $("e_checkMsg").className = "";
+    $("e_reviewBox").classList.add("hidden");
+    $("e_edit").classList.remove("hidden");
+    if (result.body.errors.length) show($("e_extractMsg"), "error", result.body.errors);
+    else show($("e_extractMsg"), "ok", ["AI đã đọc xong" + (expense.missing_fields ? ", thiếu: " + expense.missing_fields : "")]);
+  };
+
+  $("e_check").onclick = async () => {
+    const result = await call("/api/expenses/check", "POST", {
+      expense_id: Number($("e_id").value),
+      vendor: $("e_vendor").value,
+      invoice_number: $("e_invoice").value,
+      transaction_date: $("e_date").value.trim() || null,
+      amount_minor: $("e_amount").value === "" ? null : Number($("e_amount").value),
+      currency: $("e_currency").value,
+      receipt_id: $("e_receipt").value,
+    });
+    if (!result.ok) return show($("e_checkMsg"), "error", errorLines(result.body));
+
+    const detail = result.body.check_detail;
+    const lines = ["Kết quả: " + result.body.check_status];
+    if (detail.matched_expense_id) lines.push("Trùng với chứng từ " + detail.matched_expense_id + " (nhãn: " + detail.matched_labels.join(", ") + ")");
+    detail.differences.forEach((d) => lines.push("Khác ở " + d.field + ": " + d.this + " / " + d.matched));
+    detail.reasons.forEach((reason) => lines.push("Cần xem lại: " + reason));
+    show($("e_checkMsg"), result.body.check_status === "unique_under_current_rules" ? "ok" : "error", lines);
+    $("e_reviewBox").classList.remove("hidden");
+    $("e_reviewMsg").textContent = "";
+  };
+
+  async function review(decision) {
+    const result = await call("/api/expenses/review", "POST", { expense_id: Number($("e_id").value), decision });
+    if (!result.ok) return show($("e_reviewMsg"), "error", errorLines(result.body));
+    show($("e_reviewMsg"), "ok", ["Đã lưu quyết định: " + decision]);
+  }
+  $("e_confirmDup").onclick = () => review("confirm_duplicate");
+  $("e_dismiss").onclick = () => review("dismiss_suspicion");
+</script>
+</body>
+</html>
